@@ -464,7 +464,7 @@ static HRESULT WINAPI MyIFileDialog_Show(IFileDialog* This, HWND hwndOwner)
 			MessageBoxW(hwndOwner, L"Failed to compose confirm message.", L"asas", MB_ICONERROR);
 			return HRESULT_FROM_WIN32(ERROR_CANCELLED);
 		}
-		switch (MessageBoxW(hwndOwner, str, L"asas", MB_ICONINFORMATION | MB_YESNOCANCEL)) {
+		switch (MessageBoxW(hwndOwner, str, L"asas", MB_ICONQUESTION | MB_YESNOCANCEL)) {
 		case IDYES:
 			break;
 		case IDNO:
@@ -763,7 +763,12 @@ autosave:
 				MessageBoxW(lpofn->hwndOwner, L"Failed to compose confirm message.", L"asas", MB_ICONERROR);
 				return FALSE;
 			}
-			if (MessageBoxW(lpofn->hwndOwner, str, L"asas", MB_ICONINFORMATION | MB_OKCANCEL) != IDOK) {
+			switch (MessageBoxW(lpofn->hwndOwner, str, L"asas", MB_ICONQUESTION | MB_YESNOCANCEL)) {
+			case IDYES:
+				break;
+			case IDNO:
+				goto call;
+			case IDCANCEL:
 				Dbg(DEBUG_INFO, L"%s", L"aborted by user");
 				return FALSE;
 			}
@@ -871,7 +876,12 @@ autosave:
 				MessageBoxW(lpofn->hwndOwner, L"Failed to compose confirm message.", L"asas", MB_ICONERROR);
 				return FALSE;
 			}
-			if (MessageBoxW(lpofn->hwndOwner, str, L"asas", MB_ICONINFORMATION | MB_OKCANCEL) != IDOK) {
+			switch (MessageBoxW(lpofn->hwndOwner, str, L"asas", MB_ICONQUESTION | MB_YESNOCANCEL)) {
+			case IDYES:
+				break;
+			case IDNO:
+				goto call;
+			case IDCANCEL:
 				Dbg(DEBUG_INFO, L"%s", L"aborted by user");
 				return FALSE;
 			}
