@@ -340,6 +340,7 @@ static struct save_dialog_state {
 		DWORD cookie;
 	} events[num_events];
 } states[num_state] = { 0 };
+static DWORD no_interrupt = 0;
 
 static bool is_save_dialog(IFileDialog* This)
 {
@@ -395,6 +396,10 @@ static ULONG WINAPI MyIFileDialog_Release(IFileDialog* This)
 static HRESULT WINAPI MyIFileDialog_SetFileTypes(IFileDialog* This, UINT cFileTypes, const COMDLG_FILTERSPEC* rgFilterSpec)
 {
 	Dbg(DEBUG_INFO, L"%s", L"begin");
+	if (no_interrupt > 0) {
+		Dbg(DEBUG_INFO, L"%s", L"currently no active by internal reason");
+		goto call;
+	}
 	struct save_dialog_state* const s = get_state(This);
 	if (s == NULL) {
 		Dbg(DEBUG_ERROR, L"%s", L"cannot get state");
@@ -426,6 +431,10 @@ call:
 static HRESULT WINAPI MyIFileDialog_Show(IFileDialog* This, HWND hwndOwner)
 {
 	Dbg(DEBUG_INFO, L"%s", L"begin");
+	if (no_interrupt > 0) {
+		Dbg(DEBUG_INFO, L"%s", L"currently no active by internal reason");
+		goto call;
+	}
 	struct save_dialog_state* const s = get_state(This);
 	if (s == NULL || !s->is_save || !s->skip_dialog) {
 		goto call;
@@ -495,6 +504,10 @@ static HRESULT WINAPI MyIFileDialog_Advise(IFileDialog* This, IFileDialogEvents*
 	if (!SUCCEEDED(hr)) {
 		return hr;
 	}
+	if (no_interrupt > 0) {
+		Dbg(DEBUG_INFO, L"%s", L"currently no active by internal reason");
+		return hr;
+	}
 	struct save_dialog_state* const s = get_state(This);
 	if (s == NULL || !s->is_save) {
 		return hr;
@@ -517,6 +530,10 @@ static HRESULT WINAPI MyIFileDialog_Unadvise(IFileDialog* This, DWORD dwCookie)
 	if (!SUCCEEDED(hr)) {
 		return hr;
 	}
+	if (no_interrupt > 0) {
+		Dbg(DEBUG_INFO, L"%s", L"currently no active by internal reason");
+		return hr;
+	}
 	struct save_dialog_state* const s = get_state(This);
 	if (s == NULL || !s->is_save) {
 		return hr;
@@ -534,6 +551,10 @@ static HRESULT WINAPI MyIFileDialog_Unadvise(IFileDialog* This, DWORD dwCookie)
 static HRESULT WINAPI MyIFileDialog_GetResult(IFileDialog* This, IShellItem** ppsi)
 {
 	Dbg(DEBUG_INFO, L"%s", L"begin");
+	if (no_interrupt > 0) {
+		Dbg(DEBUG_INFO, L"%s", L"currently no active by internal reason");
+		goto call;
+	}
 	struct save_dialog_state* const s = get_state(This);
 	if (s == NULL || !s->is_save || !s->skip_dialog) {
 		goto call;
@@ -767,7 +788,12 @@ autosave:
 			case IDYES:
 				break;
 			case IDNO:
-				goto call;
+			{
+				++no_interrupt;
+				BOOL r = TrueGetSaveFileNameA(lpofn);
+				--no_interrupt;
+				return r;
+			}
 			case IDCANCEL:
 				Dbg(DEBUG_INFO, L"%s", L"aborted by user");
 				return FALSE;
@@ -880,7 +906,12 @@ autosave:
 			case IDYES:
 				break;
 			case IDNO:
-				goto call;
+			{
+				++no_interrupt;
+				BOOL r = TrueGetSaveFileNameW(lpofn);
+				--no_interrupt;
+				return r;
+			}
 			case IDCANCEL:
 				Dbg(DEBUG_INFO, L"%s", L"aborted by user");
 				return FALSE;
