@@ -330,7 +330,7 @@ static const struct IFileSystemBindDataVtbl my_file_system_bind_data_vtbl = {
 };
 
 enum { num_state = 8, num_events = 4 };
-struct save_dialog_state {
+static struct save_dialog_state {
 	IFileDialog* This;
 	bool is_save;
 	bool skip_dialog;
