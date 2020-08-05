@@ -329,9 +329,10 @@ static const struct IFileSystemBindDataVtbl my_file_system_bind_data_vtbl = {
 	.GetFindData = my_file_system_bind_data_GetFindData,
 };
 
-enum { num_state = 8, num_events = 4 };
+enum { num_state = 4, num_events = 4 };
 static struct save_dialog_state {
 	IFileDialog* This;
+	ULONGLONG at;
 	bool is_save;
 	bool skip_dialog;
 	wchar_t filename[MAX_PATH];
@@ -354,25 +355,39 @@ static bool is_save_dialog(IFileDialog* This)
 
 static struct save_dialog_state* set_state(IFileDialog* This)
 {
+	int found = -1;
+	int found_oldest = -1;
+	ULONGLONG at = GetTickCount64();
 	for (int i = 0; i < num_state; ++i) {
 		if (states[i].This == NULL) {
-			states[i].This = This;
-			states[i].is_save = is_save_dialog(This);
-			states[i].skip_dialog = false;
-			for (int j = 0; j < num_events; ++j) {
-				states[i].events[j].pfde = NULL;
-				states[i].events[j].cookie = 0;
-			}
-			return &states[i];
+			found = i;
+			break;
+		}
+		if (states[i].at < at) {
+			found_oldest = i;
+			at = states[i].at;
 		}
 	}
-	return NULL;
+	if (found == -1) {
+		found = found_oldest;
+		ZeroMemory(&states[found_oldest], sizeof(struct save_dialog_state));
+	}
+	states[found].This = This;
+	states[found].at = GetTickCount64();
+	states[found].is_save = is_save_dialog(This);
+	states[found].skip_dialog = false;
+	for (int j = 0; j < num_events; ++j) {
+		states[found].events[j].pfde = NULL;
+		states[found].events[j].cookie = 0;
+	}
+	return &states[found];
 }
 
 static struct save_dialog_state* get_state(IFileDialog* This)
 {
 	for (int i = 0; i < num_state; ++i) {
 		if (states[i].This == This) {
+			states[i].at = GetTickCount64();
 			return &states[i];
 		}
 	}
