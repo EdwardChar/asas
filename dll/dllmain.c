@@ -148,7 +148,6 @@ static int find_char(const wchar_t* s, wchar_t ch1, wchar_t ch2)
 	{
 		if (s[i] == ch1 || s[i] == ch2) {
 			return i;
-
 		}
 	}
 	return -1;
