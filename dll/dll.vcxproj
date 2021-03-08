@@ -144,7 +144,7 @@
       <GenerateDebugInformation>false</GenerateDebugInformation>
       <EnableUAC>false</EnableUAC>
       <AdditionalDependencies>detours.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalOptions>/export:DetourFinishHelperProcess,@1,NONAME /export:MyCreateProcess,@2,NONAME %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/export:DetourFinishHelperProcess,@1,NONAME /export:MyCreateProcess,@2,NONAME /pdbaltpath:%_PDB% %(AdditionalOptions)</AdditionalOptions>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -188,7 +188,7 @@
       <GenerateDebugInformation>false</GenerateDebugInformation>
       <EnableUAC>false</EnableUAC>
       <AdditionalDependencies>detours.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalOptions>/export:DetourFinishHelperProcess,@1,NONAME /export:MyCreateProcess,@2,NONAME %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/export:DetourFinishHelperProcess,@1,NONAME /export:MyCreateProcess,@2,NONAME /pdbaltpath:%_PDB% %(AdditionalOptions)</AdditionalOptions>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
