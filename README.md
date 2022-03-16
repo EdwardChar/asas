@@ -16,10 +16,18 @@ Auto Save As を使用したこと及び使用しなかったことによるい�
 
 これらに同意できない場合、あなたは Auto Save As を使用することができません。
 
+ダウンロード
+------------
+
+https://github.com/oov/asas/releases
+
 インストール・アンインストール
 ------------------------------
 
-インストール／アンインストールに必要な手順はありません。
+zip ファイルを解凍すればすぐに使えます。
+
+アンインストールも全てのファイルを削除するだけで完了しますが、Auto Save As を利用して起動したプログラムが動作している間は一部のファイルが使用中であるため削除できません。  
+アンインストールをする場合はそれらのプログラムを事前に終了した上で削除してください。
 
 使い方
 ------
@@ -160,6 +168,17 @@ CloseMutex:
     return 0;
 }
 ```
+
+バイナリのビルドについて
+------------------------
+
+Auto Save As は [MSYS2](https://www.msys2.org/) + MINGW32/MINGW64 上で開発しています。
+ビルド方法や必要になるパッケージなどは [GitHub Actions の設定ファイル](https://github.com/oov/asas/blob/main/.github/workflows/releaser.yml) を参考にしてください。
+
+変更履歴
+--------
+
+[CHANGELOG.md](https://github.com/oov/asas/blob/main/CHANGELOG.md) を参照してください。
 
 Credits
 -------

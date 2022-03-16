@@ -1,0 +1,4 @@
+LIBRARY   ASAS
+EXPORTS
+   DetourFinishHelperProcess   @1 NONAME
+   MyCreateProcess   @2 NONAME

@@ -1,8 +1,2 @@
-.vs/
-.bin/
-bin/
-Release64/
-Release32/
-Debug64/
-Debug32/
-*.zip
+.vscode
+build
