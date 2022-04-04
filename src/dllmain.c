@@ -526,16 +526,16 @@ static HRESULT WINAPI MyIFileDialog_Show(IFileDialog *This, HWND hwndOwner) {
                       setting.folder,
                       setting.format,
                       given_filename[0] != L'\0' ? given_filename : NULL)) {
-    MessageBoxW(hwndOwner, L"failed to build filename.", L"asas", MB_ICONERROR);
+    MessageBoxW(hwndOwner, L"failed to build filename.", APPNAME_WIDE, MB_ICONERROR);
     return HRESULT_FROM_WIN32(ERROR_CANCELLED);
   }
   if (setting.flags & asas_flags_confirm) {
     wchar_t str[1024];
     if (!SUCCEEDED(wsprintfW(str, L"Are you sure you want to save with the following filename?\n\n%s", s->filename))) {
-      MessageBoxW(hwndOwner, L"failed to build confirm message.", L"asas", MB_ICONERROR);
+      MessageBoxW(hwndOwner, L"failed to build confirm message.", APPNAME_WIDE, MB_ICONERROR);
       return HRESULT_FROM_WIN32(ERROR_CANCELLED);
     }
-    switch (MessageBoxW(hwndOwner, str, L"asas", MB_ICONQUESTION | MB_YESNOCANCEL)) {
+    switch (MessageBoxW(hwndOwner, str, APPNAME_WIDE, MB_ICONQUESTION | MB_YESNOCANCEL)) {
     case IDYES:
       break;
     case IDNO:
@@ -834,17 +834,17 @@ autosave : {
       }
     }
     if (!build_filename(filename, ARRAY_SIZE(filename), setting.folder, setting.format, given_filename)) {
-      MessageBoxW(lpofn->hwndOwner, L"Failed to compose filename.", L"asas", MB_ICONERROR);
+      MessageBoxW(lpofn->hwndOwner, L"Failed to compose filename.", APPNAME_WIDE, MB_ICONERROR);
       return FALSE;
     }
   }
   if (setting.flags & asas_flags_confirm) {
     wchar_t str[1024];
     if (!SUCCEEDED(wsprintfW(str, L"Are you sure you want to save with the following filename?\n\n%s", filename))) {
-      MessageBoxW(lpofn->hwndOwner, L"Failed to compose confirm message.", L"asas", MB_ICONERROR);
+      MessageBoxW(lpofn->hwndOwner, L"Failed to compose confirm message.", APPNAME_WIDE, MB_ICONERROR);
       return FALSE;
     }
-    switch (MessageBoxW(lpofn->hwndOwner, str, L"asas", MB_ICONQUESTION | MB_YESNOCANCEL)) {
+    switch (MessageBoxW(lpofn->hwndOwner, str, APPNAME_WIDE, MB_ICONQUESTION | MB_YESNOCANCEL)) {
     case IDYES:
       break;
     case IDNO: {
@@ -866,11 +866,11 @@ autosave : {
       if (lpofn->lpstrDefExt) {
         wchar_t defext[MAX_PATH] = {0};
         if (!to_wide(lpofn->lpstrDefExt, defext, ARRAY_SIZE(defext))) {
-          MessageBoxW(lpofn->hwndOwner, L"Failed to convert string to wide.", L"asas", MB_ICONERROR);
+          MessageBoxW(lpofn->hwndOwner, L"Failed to convert string to wide.", APPNAME_WIDE, MB_ICONERROR);
           return FALSE;
         }
         if (wcslen(filename) + wcslen(defext) + 1 >= ARRAY_SIZE(filename)) {
-          MessageBoxW(lpofn->hwndOwner, L"asas internal buffer is too small", L"asas", MB_ICONERROR);
+          MessageBoxW(lpofn->hwndOwner, L"asas internal buffer is too small", APPNAME_WIDE, MB_ICONERROR);
           return FALSE;
         }
         wcscat(filename, L".");
@@ -880,7 +880,7 @@ autosave : {
   }
 
   if (!to_mbcs(filename, lpofn->lpstrFile, (int)lpofn->nMaxFile)) {
-    MessageBoxW(lpofn->hwndOwner, L"lpstrFile buffer is too small.", L"asas", MB_ICONERROR);
+    MessageBoxW(lpofn->hwndOwner, L"lpstrFile buffer is too small.", APPNAME_WIDE, MB_ICONERROR);
     return FALSE;
   }
 
@@ -888,11 +888,11 @@ autosave : {
   char fnansi[MAX_PATH] = {0};
   wchar_t *fnwide = extract_filename(filename);
   if (!fnwide) {
-    MessageBoxW(lpofn->hwndOwner, L"Failed to extract filename from fullpath.", L"asas", MB_ICONERROR);
+    MessageBoxW(lpofn->hwndOwner, L"Failed to extract filename from fullpath.", APPNAME_WIDE, MB_ICONERROR);
     return FALSE;
   }
   if (!to_mbcs(fnwide, fnansi, ARRAY_SIZE(fnansi))) {
-    MessageBoxW(lpofn->hwndOwner, L"Failed to convert string to mbcs.", L"asas", MB_ICONERROR);
+    MessageBoxW(lpofn->hwndOwner, L"Failed to convert string to mbcs.", APPNAME_WIDE, MB_ICONERROR);
     return FALSE;
   }
   size_t len = strnlen(fnansi, ARRAY_SIZE(fnansi));
@@ -900,7 +900,7 @@ autosave : {
 
   if (lpofn->lpstrFileTitle != NULL) {
     if (len >= lpofn->nMaxFileTitle) {
-      MessageBoxW(lpofn->hwndOwner, L"lpstrFileTitle buffer is too small", L"asas", MB_ICONERROR);
+      MessageBoxW(lpofn->hwndOwner, L"lpstrFileTitle buffer is too small", APPNAME_WIDE, MB_ICONERROR);
       return FALSE;
     }
     strncpy(lpofn->lpstrFileTitle, fnansi, len);
@@ -916,7 +916,7 @@ autosave : {
     } else {
       char extansi[MAX_PATH] = {0};
       if (!to_mbcs(ext + 1, extansi, ARRAY_SIZE(extansi))) {
-        MessageBoxW(lpofn->hwndOwner, L"Failed to convert string to mbcs.", L"asas", MB_ICONERROR);
+        MessageBoxW(lpofn->hwndOwner, L"Failed to convert string to mbcs.", APPNAME_WIDE, MB_ICONERROR);
         return FALSE;
       }
       lpofn->nFileExtension = (WORD)(strnlen(fnansi, ARRAY_SIZE(fnansi)) - strnlen(extansi, ARRAY_SIZE(extansi)));
@@ -968,17 +968,17 @@ autosave : {
       }
     }
     if (!build_filename(filename, ARRAY_SIZE(filename), setting.folder, setting.format, given_filename)) {
-      MessageBoxW(lpofn->hwndOwner, L"Failed to compose filename.", L"asas", MB_ICONERROR);
+      MessageBoxW(lpofn->hwndOwner, L"Failed to compose filename.", APPNAME_WIDE, MB_ICONERROR);
       return FALSE;
     }
   }
   if (setting.flags & asas_flags_confirm) {
     wchar_t str[1024];
     if (!SUCCEEDED(wsprintfW(str, L"Are you sure you want to save with the following filename?\n\n%s", filename))) {
-      MessageBoxW(lpofn->hwndOwner, L"Failed to compose confirm message.", L"asas", MB_ICONERROR);
+      MessageBoxW(lpofn->hwndOwner, L"Failed to compose confirm message.", APPNAME_WIDE, MB_ICONERROR);
       return FALSE;
     }
-    switch (MessageBoxW(lpofn->hwndOwner, str, L"asas", MB_ICONQUESTION | MB_YESNOCANCEL)) {
+    switch (MessageBoxW(lpofn->hwndOwner, str, APPNAME_WIDE, MB_ICONQUESTION | MB_YESNOCANCEL)) {
     case IDYES:
       break;
     case IDNO: {
@@ -999,7 +999,7 @@ autosave : {
       // If no extension is given and lpofn->lpstrDefExt is not null, add the default extension.
       if (lpofn->lpstrDefExt) {
         if (wcslen(filename) + wcslen(lpofn->lpstrDefExt) + 1 >= ARRAY_SIZE(filename)) {
-          MessageBoxW(lpofn->hwndOwner, L"asas internal buffer is too small", L"asas", MB_ICONERROR);
+          MessageBoxW(lpofn->hwndOwner, L"asas internal buffer is too small", APPNAME_WIDE, MB_ICONERROR);
           return FALSE;
         }
         wcscat(filename, L".");
@@ -1009,7 +1009,7 @@ autosave : {
   }
 
   if (wcslen(filename) >= lpofn->nMaxFile) {
-    MessageBoxW(lpofn->hwndOwner, L"lpstrFile buffer is too small", L"asas", MB_ICONERROR);
+    MessageBoxW(lpofn->hwndOwner, L"lpstrFile buffer is too small", APPNAME_WIDE, MB_ICONERROR);
     return FALSE;
   }
   wcscpy(lpofn->lpstrFile, filename);
@@ -1020,7 +1020,7 @@ autosave : {
   if (lpofn->lpstrFileTitle != NULL) {
     size_t const len = wcsnlen(fn, ARRAY_SIZE(filename) - (size_t)(fn - filename));
     if (len >= lpofn->nMaxFileTitle) {
-      MessageBoxW(lpofn->hwndOwner, L"lpstrFileTitle is too small", L"asas", MB_ICONERROR);
+      MessageBoxW(lpofn->hwndOwner, L"lpstrFileTitle is too small", APPNAME_WIDE, MB_ICONERROR);
       return FALSE;
     } else {
       wcsncpy(lpofn->lpstrFileTitle, fn, len);
