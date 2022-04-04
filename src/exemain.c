@@ -2,6 +2,8 @@
 
 #include <wchar.h>
 
+#include "version.h"
+
 static wchar_t *extract_filename(wchar_t *const str) {
   if (!str) {
     return NULL;
@@ -29,19 +31,19 @@ int APIENTRY wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmd
   wchar_t s[MAX_PATH] = {0};
   DWORD r = GetModuleFileNameW(NULL, s, MAX_PATH);
   if (r == 0 || r == MAX_PATH) {
-    MessageBoxW(NULL, L"Failed to get module filename.", L"asas", MB_ICONERROR);
+    MessageBoxW(NULL, L"Failed to get module filename.", APPNAME_WIDE, MB_ICONERROR);
     return 1;
   }
   wchar_t *const filename = extract_filename(s);
   if (filename == NULL || filename + wcslen(dll_name) + 1 > s + MAX_PATH) {
-    MessageBoxW(NULL, L"Initialization failed.", L"asas", MB_ICONERROR);
+    MessageBoxW(NULL, L"Initialization failed.", APPNAME_WIDE, MB_ICONERROR);
     return 1;
   }
   *filename = L'\0';
   wcscat(s, dll_name);
   HMODULE dll = LoadLibraryW(s);
   if (dll == NULL) {
-    MessageBoxW(NULL, L"Initialization failed.", L"asas", MB_ICONERROR);
+    MessageBoxW(NULL, L"Initialization failed.", APPNAME_WIDE, MB_ICONERROR);
     return 1;
   }
   typedef BOOL(CALLBACK * MyCreateProcessFunc)(LPCWSTR lpApplicationName,
@@ -56,7 +58,7 @@ int APIENTRY wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmd
                                                LPPROCESS_INFORMATION lpProcessInformation);
   MyCreateProcessFunc MyCreateProcess = (MyCreateProcessFunc)GetProcAddress(dll, MAKEINTRESOURCEA(2));
   if (!MyCreateProcess) {
-    MessageBoxW(NULL, L"Initialization failed.", L"asas", MB_ICONERROR);
+    MessageBoxW(NULL, L"Initialization failed.", APPNAME_WIDE, MB_ICONERROR);
     return 1;
   }
 
@@ -79,11 +81,11 @@ int APIENTRY wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmd
                          0,
                          NULL);
       if (rr == 0) {
-        MessageBoxW(NULL, L"Error occurred but failed to retrieve error message.", L"asas", MB_ICONERROR);
+        MessageBoxW(NULL, L"Error occurred but failed to retrieve error message.", APPNAME_WIDE, MB_ICONERROR);
         return 1;
       }
       wsprintfW(msg, L"Failed to start process.\n\nError(%d): %s", r, errmsg);
-      MessageBoxW(NULL, msg, L"asas", MB_ICONERROR);
+      MessageBoxW(NULL, msg, APPNAME_WIDE, MB_ICONERROR);
       LocalFree(errmsg);
     }
     return 1;

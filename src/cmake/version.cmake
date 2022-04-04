@@ -7,25 +7,29 @@ find_package(Git REQUIRED)
 execute_process(
   COMMAND ${GIT_EXECUTABLE} tag --points-at HEAD
   WORKING_DIRECTORY "${local_dir}"
-  OUTPUT_VARIABLE _git_tag
+  OUTPUT_VARIABLE git_tag
   ERROR_QUIET
   OUTPUT_STRIP_TRAILING_WHITESPACE
 )
-if ("${_git_tag}" STREQUAL "")
-  set(_git_tag "vX.X.X")
+if ("${git_tag}" STREQUAL "")
+  set(git_tag "vX.X.X")
 endif()
-message(STATUS "git tag: ${_git_tag}")
+message(STATUS "git tag: ${git_tag}")
 
 execute_process(
   COMMAND ${GIT_EXECUTABLE} rev-parse --short HEAD
   WORKING_DIRECTORY "${local_dir}"
-  OUTPUT_VARIABLE _git_revision
+  OUTPUT_VARIABLE git_revision
   ERROR_QUIET
   OUTPUT_STRIP_TRAILING_WHITESPACE
 )
-if ("${_git_revision}" STREQUAL "")
-  set(_git_revision "unknown")
+if ("${git_revision}" STREQUAL "")
+  set(git_revision "unknown")
 endif()
-message(STATUS "git revision: ${_git_revision}")
+message(STATUS "git revision: ${git_revision}")
 
-configure_file(${input_file} ${output_file} @ONLY)
+if("${newline}" STREQUAL "")
+  set(newline "CRLF")
+endif()
+
+configure_file(${input_file} ${output_file} @ONLY NEWLINE_STYLE ${newline})

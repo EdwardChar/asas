@@ -1,3 +1,6 @@
 #pragma once
-#define VERSION "@_git_tag@ ( @_git_revision@ )"
-#define VERSION_WIDE L"@_git_tag@ ( @_git_revision@ )"
+#define VERSION "@git_tag@ ( @git_revision@ )"
+#define VERSION_WIDE L"@git_tag@ ( @git_revision@ )"
+
+#define APPNAME "asas " VERSION
+#define APPNAME_WIDE L"asas " VERSION_WIDE

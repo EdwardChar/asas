@@ -35,6 +35,7 @@ add_custom_target(generate_version_h COMMAND
   -Dlocal_dir="${PROJECT_SOURCE_DIR}"
   -Dinput_file="${CMAKE_CURRENT_SOURCE_DIR}/version.h.in"
   -Doutput_file="${CMAKE_CURRENT_BINARY_DIR}/version.h"
+  -Dnewline="LF"
   -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/version.cmake"
 )
 
@@ -64,8 +65,13 @@ add_dependencies(asas_dll detours generate_version_h)
 list(APPEND targets asas_dll)
 
 if(CMAKE_SIZEOF_VOID_P EQUAL 4)
-  add_custom_target(copy_related_files
-    COMMAND ${CMAKE_COMMAND} -E copy "${PROJECT_SOURCE_DIR}/README.md" "${CMAKE_BINARY_DIR}/bin/asas.txt"
+  add_custom_target(generate_readme COMMAND
+    ${CMAKE_COMMAND}
+    -Dlocal_dir="${PROJECT_SOURCE_DIR}"
+    -Dinput_file="${PROJECT_SOURCE_DIR}/README.md"
+    -Doutput_file="${CMAKE_BINARY_DIR}/bin/asas.txt"
+    -Dnewline="CRLF"
+    -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/version.cmake"
   )
   add_executable(asas_exe
     exemain.c
@@ -77,7 +83,7 @@ if(CMAKE_SIZEOF_VOID_P EQUAL 4)
   target_link_options(asas_exe PRIVATE
     -municode
   )
-  add_dependencies(asas_exe generate_version_h copy_related_files)
+  add_dependencies(asas_exe generate_version_h generate_readme)
   list(APPEND targets asas_exe)
 endif()
 
