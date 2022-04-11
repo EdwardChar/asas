@@ -68,6 +68,8 @@ static HRESULT(WINAPI *TrueIFileDialog_GetResult)(IFileDialog *This, IShellItem 
 static BOOL(WINAPI *TrueGetSaveFileNameA)(LPOPENFILENAMEA lpofna) = GetSaveFileNameA;
 static BOOL(WINAPI *TrueGetSaveFileNameW)(LPOPENFILENAMEW lpofnw) = GetSaveFileNameW;
 
+static int(WINAPI *TrueEntryPoint)(VOID) = NULL;
+
 enum {
   debug_info = 0,
   debug_warn = 1,
@@ -675,17 +677,19 @@ call:
 }
 
 static bool attach_interface(IFileDialog *fd) {
+  if (DetourTransactionBegin() != NO_ERROR) {
+    DBG(debug_error, L"%s", L"failed to begin transaction");
+    return false;
+  }
+  if (TrueIFileDialog_Show) {
+    goto abort;
+  }
   TrueIFileDialog_Release = fd->lpVtbl->Release;
   TrueIFileDialog_Show = fd->lpVtbl->Show;
   TrueIFileDialog_SetFileTypes = fd->lpVtbl->SetFileTypes;
   TrueIFileDialog_Advise = fd->lpVtbl->Advise;
   TrueIFileDialog_Unadvise = fd->lpVtbl->Unadvise;
   TrueIFileDialog_GetResult = fd->lpVtbl->GetResult;
-
-  if (DetourTransactionBegin() != NO_ERROR) {
-    DBG(debug_error, L"%s", L"failed to begin transaction");
-    return false;
-  }
   if (DetourUpdateThread(GetCurrentThread()) != NO_ERROR) {
     DBG(debug_error, L"%s", L"failed to update thread");
     goto abort;
@@ -1062,6 +1066,8 @@ static HRESULT WINAPI MyCoInitializeEx(LPVOID pvReserved, DWORD dwCoInit) {
   return hr;
 }
 
+int WINAPI MyEntryPoint(VOID);
+
 static bool attach_process(void) {
   if (DetourTransactionBegin() != NO_ERROR) {
     DBG(debug_error, L"%s", L"failed to begin transaction");
@@ -1104,6 +1110,7 @@ static bool detach_process(void) {
     DBG(debug_error, L"%s", L"failed to update thread");
     goto abort;
   }
+  DetourDetach((PVOID *)&TrueEntryPoint, (void *)MyEntryPoint);
   DetourDetach((PVOID *)&TrueCoInitializeEx, (void *)MyCoInitializeEx);
   if (TrueIFileDialog_Show != NULL) {
     DetourDetach((PVOID *)&TrueIFileDialog_Release, (void *)MyIFileDialog_Release);
@@ -1265,6 +1272,21 @@ static void init_logger(void) {
     g_log_level = (int)u;
   }
 }
+
+int WINAPI MyEntryPoint(VOID) {
+  init_logger();
+  DBG(debug_info, L"asas %s", VERSION_WIDE);
+  if (!init_shared_memory()) {
+    DBG(debug_error, L"%s", L"failed to initialize shared memory");
+  }
+  if (attach_process()) {
+    DBG(debug_info, L"%s", L"ready");
+  } else {
+    DBG(debug_warn, L"%s", L"initialization failed");
+  }
+  return TrueEntryPoint();
+}
+
 static HMODULE g_instance = NULL;
 
 BOOL APIENTRY MyCreateProcess(LPCWSTR lpApplicationName,
@@ -1309,6 +1331,32 @@ BOOL APIENTRY MyCreateProcess(LPCWSTR lpApplicationName,
 
 static bool g_attached = false;
 
+static bool attach_entry_point(void) {
+  TrueEntryPoint = (int(WINAPI *)(VOID))DetourGetEntryPoint(NULL);
+  if (DetourTransactionBegin() != NO_ERROR) {
+    DBG(debug_error, L"%s", L"failed to begin transaction");
+    return false;
+  }
+  if (DetourUpdateThread(GetCurrentThread()) != NO_ERROR) {
+    DBG(debug_error, L"%s", L"failed to update thread");
+    goto abort;
+  }
+  if (DetourAttach((PVOID *)&TrueEntryPoint, (void *)MyEntryPoint) != NO_ERROR) {
+    DBG(debug_error, L"%s", L"failed to attach EntryPoint");
+    goto abort;
+  }
+  if (DetourTransactionCommit() != NO_ERROR) {
+    DBG(debug_error, L"%s", L"failed to commit");
+    goto abort;
+  }
+  return true;
+abort:
+  if (DetourTransactionAbort() != NO_ERROR) {
+    DBG(debug_error, L"%s", L"failed to abort");
+  }
+  return false;
+}
+
 BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserved);
 BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserved) {
   (void)lpReserved;
@@ -1319,19 +1367,8 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserv
     return TRUE;
   }
   if (ul_reason_for_call == DLL_PROCESS_ATTACH) {
-    DisableThreadLibraryCalls(hModule);
     if (DetourRestoreAfterWith()) {
-      init_logger();
-      DBG(debug_info, L"asas %s", VERSION_WIDE);
-      if (!init_shared_memory()) {
-        DBG(debug_error, L"%s", L"failed to initialize shared memory");
-      }
-      if (attach_process()) {
-        g_attached = true;
-        DBG(debug_info, L"%s", L"ready");
-      } else {
-        DBG(debug_warn, L"%s", L"initialization failed");
-      }
+      g_attached = attach_entry_point();
     }
   } else if (ul_reason_for_call == DLL_PROCESS_DETACH) {
     if (g_attached) {
