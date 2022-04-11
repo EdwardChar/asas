@@ -549,7 +549,7 @@ static HRESULT WINAPI MyIFileDialog_Show(IFileDialog *This, HWND hwndOwner) {
       return HRESULT_FROM_WIN32(ERROR_CANCELLED);
     }
   }
-  for (int i = 0; i < num_state; ++i) {
+  for (int i = 0; i < num_events; ++i) {
     if (s->events[i].file_dialog_events != NULL) {
       if (!SUCCEEDED(s->events[i].file_dialog_events->lpVtbl->OnFileOk(s->events[i].file_dialog_events, This))) {
         DBG(debug_info, L"%s", L"aborted by IFileDialogEvent");
