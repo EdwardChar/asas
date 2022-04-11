@@ -266,7 +266,7 @@ static bool build_filename(wchar_t *const dest,
       return false;
     }
     dest[written] = L'\\';
-    written += 1;
+    dest[++written] = L'\0';
   }
 
   if (given_filename != NULL && is_valid_filename(given_filename)) {
