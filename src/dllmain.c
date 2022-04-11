@@ -385,7 +385,7 @@ static struct save_dialog_state {
   bool skip_dialog;
   wchar_t filename[MAX_PATH];
   struct {
-    IFileDialogEvents *pfde;
+    IFileDialogEvents *file_dialog_events;
     DWORD cookie;
   } events[num_events];
 } g_states[num_state] = {0};
@@ -424,7 +424,7 @@ static struct save_dialog_state *set_state(IFileDialog *This) {
   g_states[found].is_save = is_save_dialog(This);
   g_states[found].skip_dialog = false;
   for (int j = 0; j < num_events; ++j) {
-    g_states[found].events[j].pfde = NULL;
+    g_states[found].events[j].file_dialog_events = NULL;
     g_states[found].events[j].cookie = 0;
   }
   return &g_states[found];
@@ -445,7 +445,8 @@ static ULONG WINAPI MyIFileDialog_Release(IFileDialog *This) {
   if (r == 0) {
     for (int i = 0; i < num_state; ++i) {
       if (g_states[i].This == This) {
-        ZeroMemory(&g_states[i], sizeof(struct save_dialog_state));
+        struct save_dialog_state *s = g_states + i;
+        ZeroMemory(s, sizeof(struct save_dialog_state));
         break;
       }
     }
@@ -549,8 +550,8 @@ static HRESULT WINAPI MyIFileDialog_Show(IFileDialog *This, HWND hwndOwner) {
     }
   }
   for (int i = 0; i < num_state; ++i) {
-    if (s->events[i].pfde != NULL) {
-      if (!SUCCEEDED(s->events[i].pfde->lpVtbl->OnFileOk(s->events[i].pfde, This))) {
+    if (s->events[i].file_dialog_events != NULL) {
+      if (!SUCCEEDED(s->events[i].file_dialog_events->lpVtbl->OnFileOk(s->events[i].file_dialog_events, This))) {
         DBG(debug_info, L"%s", L"aborted by IFileDialogEvent");
         return HRESULT_FROM_WIN32(ERROR_CANCELLED);
       }
@@ -576,8 +577,8 @@ static HRESULT WINAPI MyIFileDialog_Advise(IFileDialog *This, IFileDialogEvents 
     return hr;
   }
   for (int i = 0; i < num_events; ++i) {
-    if (s->events[i].pfde == NULL) {
-      s->events[i].pfde = pfde;
+    if (s->events[i].file_dialog_events == NULL) {
+      s->events[i].file_dialog_events = pfde;
       s->events[i].cookie = *pdwCookie;
       return hr;
     }
@@ -602,7 +603,7 @@ static HRESULT WINAPI MyIFileDialog_Unadvise(IFileDialog *This, DWORD dwCookie) 
   }
   for (int i = 0; i < num_events; ++i) {
     if (s->events[i].cookie == dwCookie) {
-      s->events[i].pfde = NULL;
+      s->events[i].file_dialog_events = NULL;
       s->events[i].cookie = 0;
       return hr;
     }
