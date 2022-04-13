@@ -91,7 +91,7 @@ static void debug(const int level, const wchar_t *fmt, ...) {
   OutputDebugStringW(s);
   if (g_log_filename[0] != '\0') {
     char u8[2048];
-    int u8len = WideCharToMultiByte(CP_UTF8, 0, s, -1, u8, 4096, NULL, NULL);
+    int u8len = WideCharToMultiByte(CP_UTF8, 0, s, -1, u8, ARRAY_SIZE(u8), NULL, NULL);
     if (!u8len) {
       return;
     }
