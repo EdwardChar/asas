@@ -614,10 +614,6 @@ static HRESULT WINAPI MyIFileDialog_Unadvise(IFileDialog *This, DWORD dwCookie) 
 static HRESULT WINAPI MyIFileDialog_GetResult(IFileDialog *This, IShellItem **ppsi) {
   struct save_dialog_state *s = NULL;
   struct asas_setting setting = {0};
-  IShellFolder *shell_folder = NULL;
-  LPITEMIDLIST pidl = NULL;
-  IBindCtx *bctx = NULL;
-  HRESULT hr;
   DBG(debug_info, L"%s", L"begin");
   if (g_no_interrupt > 0) {
     DBG(debug_info, L"%s", L"currently no active by internal reason");
@@ -635,53 +631,82 @@ static HRESULT WINAPI MyIFileDialog_GetResult(IFileDialog *This, IShellItem **pp
     DBG(debug_info, L"%s", L"asas is not active");
     goto call;
   }
+
+  IShellFolder *shell_folder = NULL;
+  IBindCtx *bctx = NULL;
+  struct my_file_system_bind_data *fsbd = NULL;
+  LPITEMIDLIST pidl = NULL;
+  HRESULT hr = S_OK;
   if (s->filename[0] == '\0') {
-    return S_FALSE;
+    hr = S_FALSE;
+    goto cleanup;
   }
-  hr = SHGetDesktopFolder(&shell_folder);
-  if (!SUCCEEDED(hr)) {
-    DBG(debug_error, L"SHGetDesktopFolder failed %08x", hr);
-    return S_FALSE;
+  fsbd = CoTaskMemAlloc(sizeof(struct my_file_system_bind_data));
+  if (fsbd == NULL) {
+    DBG(debug_error, L"CoTaskMemAlloc failed %08x", hr);
+    hr = S_FALSE;
+    goto cleanup;
   }
+  *fsbd = (struct my_file_system_bind_data){
+      .lpVtbl = &my_file_system_bind_data_vtbl,
+      .ref = 1,
+      .fd =
+          (WIN32_FIND_DATAW){
+              .dwFileAttributes = FILE_ATTRIBUTE_NORMAL,
+          },
+  };
+  if (wcslen(s->filename) >= ARRAY_SIZE(fsbd->fd.cFileName)) {
+    DBG(debug_error, L"%s", L"cannot copy filename to WIN32_FIND_DATAW");
+    hr = S_FALSE;
+    goto cleanup;
+  }
+  wcscpy(fsbd->fd.cFileName, s->filename);
+
   hr = CreateBindCtx(0, &bctx);
   if (!SUCCEEDED(hr)) {
     DBG(debug_error, L"CreateBindCtx failed %08x", hr);
-    return S_FALSE;
+    hr = S_FALSE;
+    goto cleanup;
   }
-  {
-    struct my_file_system_bind_data *fsbd = CoTaskMemAlloc(sizeof(struct my_file_system_bind_data));
-    if (fsbd == NULL) {
-      DBG(debug_error, L"CoTaskMemAlloc failed %08x", hr);
-      return S_FALSE;
-    }
-    *fsbd = (struct my_file_system_bind_data){
-        .lpVtbl = &my_file_system_bind_data_vtbl,
-        .ref = 1,
-        .fd =
-            (WIN32_FIND_DATAW){
-                .dwFileAttributes = FILE_ATTRIBUTE_NORMAL,
-            },
-    };
-    if (wcslen(s->filename) >= ARRAY_SIZE(fsbd->fd.cFileName)) {
-      DBG(debug_error, L"%s", L"cannot copy filename to WIN32_FIND_DATAW");
-      return S_FALSE;
-    }
-    wcscpy(fsbd->fd.cFileName, s->filename);
-    bctx->lpVtbl->RegisterObjectParam(bctx, L"File System Bind Data", (IUnknown *)fsbd);
-    fsbd->lpVtbl->Release((IFileSystemBindData *)fsbd);
-    fsbd = NULL;
+  bctx->lpVtbl->RegisterObjectParam(bctx, L"File System Bind Data", (IUnknown *)fsbd);
+
+  hr = SHGetDesktopFolder(&shell_folder);
+  if (!SUCCEEDED(hr)) {
+    DBG(debug_error, L"SHGetDesktopFolder failed %08x", hr);
+    hr = S_FALSE;
+    goto cleanup;
   }
   hr = shell_folder->lpVtbl->ParseDisplayName(shell_folder, NULL, bctx, s->filename, NULL, &pidl, NULL);
   if (!SUCCEEDED(hr)) {
     DBG(debug_error, L"ParseDisplayName failed %08x", hr);
-    return S_FALSE;
+    hr = S_FALSE;
+    goto cleanup;
   }
+
   hr = SHCreateShellItem(NULL, NULL, pidl, ppsi);
   if (!SUCCEEDED(hr)) {
     DBG(debug_error, L"SHCreateShellItem failed %08x", hr);
-    return S_FALSE;
+    hr = S_FALSE;
+    goto cleanup;
   }
-  return S_OK;
+cleanup:
+  if (pidl) {
+    CoTaskMemFree(pidl);
+    pidl = NULL;
+  }
+  if (shell_folder) {
+    shell_folder->lpVtbl->Release(shell_folder);
+    shell_folder = NULL;
+  }
+  if (bctx) {
+    bctx->lpVtbl->Release(bctx);
+    bctx = NULL;
+  }
+  if (fsbd) {
+    fsbd->lpVtbl->Release((IFileSystemBindData *)fsbd);
+    fsbd = NULL;
+  }
+  return hr;
 call:
   return TrueIFileDialog_GetResult(This, ppsi);
 }
