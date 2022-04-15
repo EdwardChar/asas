@@ -613,6 +613,7 @@ static HRESULT WINAPI MyIFileDialog_Unadvise(IFileDialog *This, DWORD dwCookie) 
 
 static HRESULT WINAPI MyIFileDialog_GetResult(IFileDialog *This, IShellItem **ppsi) {
   struct save_dialog_state *s = NULL;
+  struct asas_setting setting = {0};
   IShellFolder *shell_folder = NULL;
   LPITEMIDLIST pidl = NULL;
   IBindCtx *bctx = NULL;
@@ -624,6 +625,14 @@ static HRESULT WINAPI MyIFileDialog_GetResult(IFileDialog *This, IShellItem **pp
   }
   s = get_state(This);
   if (s == NULL || !s->is_save || !s->skip_dialog) {
+    goto call;
+  }
+  if (!get_shared_setting(&setting)) {
+    DBG(debug_error, L"%s", L"cannot get current setting");
+    goto call;
+  }
+  if (!(setting.flags & asas_flags_active)) {
+    DBG(debug_info, L"%s", L"asas is not active");
     goto call;
   }
   if (s->filename[0] == '\0') {
