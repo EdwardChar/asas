@@ -440,6 +440,13 @@ static struct save_dialog_state *get_state(IFileDialog *This) {
   return set_state(This);
 }
 
+static void simulate_modal_dialog(void) {
+  // In some software, the process sometimes failed because the dialog was closed too early.
+  // If the dialog is operated by a human, it should take much longer.
+  // So a slight slowdown should have no impact.
+  Sleep(50);
+}
+
 static ULONG WINAPI MyIFileDialog_Release(IFileDialog *This) {
   ULONG r = TrueIFileDialog_Release(This);
   if (r == 0) {
@@ -549,6 +556,9 @@ static HRESULT WINAPI MyIFileDialog_Show(IFileDialog *This, HWND hwndOwner) {
       return HRESULT_FROM_WIN32(ERROR_CANCELLED);
     }
   }
+
+  simulate_modal_dialog();
+
   for (int i = 0; i < num_events; ++i) {
     if (s->events[i].file_dialog_events != NULL) {
       if (!SUCCEEDED(s->events[i].file_dialog_events->lpVtbl->OnFileOk(s->events[i].file_dialog_events, This))) {
@@ -707,6 +717,7 @@ cleanup:
     fsbd = NULL;
   }
   return hr;
+
 call:
   return TrueIFileDialog_GetResult(This, ppsi);
 }
@@ -898,6 +909,8 @@ autosave : {
     }
   }
 
+  simulate_modal_dialog();
+
   {
     wchar_t *const ext = extract_file_extension(filename);
     if (!ext) {
@@ -1031,6 +1044,8 @@ autosave : {
       return FALSE;
     }
   }
+
+  simulate_modal_dialog();
 
   {
     wchar_t *const ext = extract_file_extension(filename);
