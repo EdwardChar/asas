@@ -520,6 +520,9 @@ static HRESULT WINAPI MyIFileDialog_Show(IFileDialog *This, HWND hwndOwner) {
     DBG(debug_info, L"%s", L"asas is not active");
     goto call;
   }
+
+  simulate_modal_dialog();
+
   if (setting.flags & asas_flags_use_given_filename) {
     LPWSTR str = NULL;
     if (SUCCEEDED(This->lpVtbl->GetFileName(This, &str))) {
@@ -556,9 +559,6 @@ static HRESULT WINAPI MyIFileDialog_Show(IFileDialog *This, HWND hwndOwner) {
       return HRESULT_FROM_WIN32(ERROR_CANCELLED);
     }
   }
-
-  simulate_modal_dialog();
-
   for (int i = 0; i < num_events; ++i) {
     if (s->events[i].file_dialog_events != NULL) {
       if (!SUCCEEDED(s->events[i].file_dialog_events->lpVtbl->OnFileOk(s->events[i].file_dialog_events, This))) {
