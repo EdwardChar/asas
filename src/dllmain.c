@@ -54,6 +54,7 @@ struct asas_setting {
 
 static HANDLE g_mutex = NULL;
 static HANDLE g_fmo = NULL;
+static HMODULE g_instance = NULL;
 
 static HRESULT(WINAPI *TrueCoInitializeEx)(LPVOID pvReserved, DWORD dwCoInit) = CoInitializeEx;
 static ULONG(WINAPI *TrueIFileDialog_Release)(IFileDialog *This) = NULL;
@@ -440,11 +441,58 @@ static struct save_dialog_state *get_state(IFileDialog *This) {
   return set_state(This);
 }
 
-static void simulate_modal_dialog(void) {
+static LRESULT WINAPI dummy_wndproc(HWND const window, UINT const message, WPARAM const wparam, LPARAM const lparam) {
+  switch (message) {
+  case WM_TIMER:
+    KillTimer(window, 1);
+    DestroyWindow(window);
+    return 0;
+  default:
+    return DefWindowProcW(window, message, wparam, lparam);
+  }
+}
+
+static void simulate_modal_dialog(HWND const owner_window) {
   // In some software, the process sometimes failed because the dialog was closed too early.
   // If the dialog is operated by a human, it should take much longer.
   // So a slight slowdown should have no impact.
-  Sleep(50);
+  static wchar_t const window_class_name[] = L"asas_dummy_save_dialog";
+  WNDCLASSEXW wc = {0};
+  wc.cbSize = sizeof(WNDCLASSEXW);
+  wc.lpfnWndProc = dummy_wndproc;
+  wc.hInstance = g_instance;
+  wc.lpszClassName = window_class_name;
+  RegisterClassExW(&wc);
+  HWND h = CreateWindowExW(0,
+                           window_class_name,
+                           NULL,
+                           WS_OVERLAPPEDWINDOW,
+                           CW_USEDEFAULT,
+                           CW_USEDEFAULT,
+                           CW_USEDEFAULT,
+                           CW_USEDEFAULT,
+                           HWND_MESSAGE,
+                           0,
+                           g_instance,
+                           NULL);
+  WINBOOL const is_window = IsWindow(owner_window);
+  WINBOOL enabled = false;
+  if (is_window) {
+    enabled = IsWindowEnabled(owner_window);
+    if (enabled) {
+      EnableWindow(owner_window, FALSE);
+    }
+  }
+  SetTimer(h, 1, 50, NULL);
+  MSG msg = {0};
+  while (GetMessageW(&msg, h, 0, 0) > 0) {
+    TranslateMessage(&msg);
+    DispatchMessageW(&msg);
+  }
+  UnregisterClassW(window_class_name, g_instance);
+  if (is_window && enabled) {
+    EnableWindow(owner_window, TRUE);
+  }
 }
 
 static ULONG WINAPI MyIFileDialog_Release(IFileDialog *This) {
@@ -521,7 +569,7 @@ static HRESULT WINAPI MyIFileDialog_Show(IFileDialog *This, HWND hwndOwner) {
     goto call;
   }
 
-  simulate_modal_dialog();
+  simulate_modal_dialog(hwndOwner);
 
   if (setting.flags & asas_flags_use_given_filename) {
     LPWSTR str = NULL;
@@ -909,7 +957,7 @@ autosave : {
     }
   }
 
-  simulate_modal_dialog();
+  simulate_modal_dialog(lpofn->hwndOwner);
 
   {
     wchar_t *const ext = extract_file_extension(filename);
@@ -1045,7 +1093,7 @@ autosave : {
     }
   }
 
-  simulate_modal_dialog();
+  simulate_modal_dialog(lpofn->hwndOwner);
 
   {
     wchar_t *const ext = extract_file_extension(filename);
@@ -1336,8 +1384,6 @@ int WINAPI MyEntryPoint(VOID) {
   }
   return TrueEntryPoint();
 }
-
-static HMODULE g_instance = NULL;
 
 BOOL APIENTRY MyCreateProcess(LPCWSTR lpApplicationName,
                               LPWSTR lpCommandLine,
