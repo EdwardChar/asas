@@ -576,6 +576,7 @@ static HRESULT WINAPI MyIFileDialog_Show(IFileDialog *This, HWND hwndOwner) {
     if (SUCCEEDED(This->lpVtbl->GetFileName(This, &str))) {
       if (wcslen(str) >= ARRAY_SIZE(given_filename)) {
         DBG(debug_error, L"%s", L"not sufficient buffer");
+        CoTaskMemFree(str);
         goto call;
       }
       wcscpy(given_filename, str);
