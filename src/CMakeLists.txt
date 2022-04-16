@@ -24,6 +24,7 @@ target_compile_definitions(detours PRIVATE
 target_compile_options(detours PRIVATE
   -ffunction-sections
   -fdata-sections
+  -Wno-ignored-attributes
   -flto
   -fno-exceptions
   -stdlib=libc++
