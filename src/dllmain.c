@@ -442,58 +442,12 @@ static struct save_dialog_state *get_state(IFileDialog *This) {
   return set_state(This);
 }
 
-static LRESULT WINAPI dummy_wndproc(HWND const window, UINT const message, WPARAM const wparam, LPARAM const lparam) {
-  switch (message) {
-  case WM_TIMER:
-    KillTimer(window, 1);
-    DestroyWindow(window);
-    return 0;
-  default:
-    return DefWindowProcW(window, message, wparam, lparam);
-  }
-}
-
 static void simulate_modal_dialog(HWND const owner_window) {
   // In some software, the process sometimes failed because the dialog was closed too early.
   // If the dialog is operated by a human, it should take much longer.
   // So a slight slowdown should have no impact.
-  static wchar_t const window_class_name[] = L"asas_dummy_save_dialog";
-  WNDCLASSEXW wc = {0};
-  wc.cbSize = sizeof(WNDCLASSEXW);
-  wc.lpfnWndProc = dummy_wndproc;
-  wc.hInstance = g_instance;
-  wc.lpszClassName = window_class_name;
-  RegisterClassExW(&wc);
-  HWND h = CreateWindowExW(0,
-                           window_class_name,
-                           NULL,
-                           WS_OVERLAPPEDWINDOW,
-                           CW_USEDEFAULT,
-                           CW_USEDEFAULT,
-                           CW_USEDEFAULT,
-                           CW_USEDEFAULT,
-                           HWND_MESSAGE,
-                           0,
-                           g_instance,
-                           NULL);
-  WINBOOL const is_window = IsWindow(owner_window);
-  WINBOOL enabled = false;
-  if (is_window) {
-    enabled = IsWindowEnabled(owner_window);
-    if (enabled) {
-      EnableWindow(owner_window, FALSE);
-    }
-  }
-  SetTimer(h, 1, 50, NULL);
-  MSG msg = {0};
-  while (GetMessageW(&msg, h, 0, 0) > 0) {
-    TranslateMessage(&msg);
-    DispatchMessageW(&msg);
-  }
-  UnregisterClassW(window_class_name, g_instance);
-  if (is_window && enabled) {
-    EnableWindow(owner_window, TRUE);
-  }
+  (void)owner_window;
+  Sleep(50);
 }
 
 static ULONG WINAPI MyIFileDialog_Release(IFileDialog *This) {
