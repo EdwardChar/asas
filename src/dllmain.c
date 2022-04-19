@@ -55,6 +55,7 @@ struct asas_setting {
 static HANDLE g_mutex = NULL;
 static HANDLE g_fmo = NULL;
 static HMODULE g_instance = NULL;
+static CRITICAL_SECTION g_cs = {0};
 
 static HRESULT(WINAPI *TrueCoInitializeEx)(LPVOID pvReserved, DWORD dwCoInit) = CoInitializeEx;
 static ULONG(WINAPI *TrueIFileDialog_Release)(IFileDialog *This) = NULL;
@@ -1151,17 +1152,21 @@ call:
 
 static HRESULT WINAPI MyCoInitializeEx(LPVOID pvReserved, DWORD dwCoInit) {
   const HRESULT hr = TrueCoInitializeEx(pvReserved, dwCoInit);
+  EnterCriticalSection(&g_cs);
   if (TrueIFileDialog_Show != NULL) {
+    LeaveCriticalSection(&g_cs);
     return hr;
   }
   IFileDialog *fd = NULL;
   if (!SUCCEEDED(CoCreateInstance(&CLSID_FileSaveDialog, NULL, CLSCTX_ALL, &IID_IFileDialog, (LPVOID *)&fd))) {
     DBG(debug_error, L"%s", L"failed to get IFileDialog");
+    LeaveCriticalSection(&g_cs);
     return hr;
   }
   attach_interface(fd);
   fd->lpVtbl->Release(fd);
   fd = NULL;
+  LeaveCriticalSection(&g_cs);
   return hr;
 }
 
@@ -1201,6 +1206,7 @@ abort:
 }
 
 static bool detach_process(void) {
+  DeleteCriticalSection(&g_cs);
   if (DetourTransactionBegin() != NO_ERROR) {
     DBG(debug_error, L"%s", L"failed to begin transaction");
     return false;
@@ -1429,6 +1435,7 @@ BOOL APIENTRY MyCreateProcess(LPCWSTR lpApplicationName,
 static bool g_attached = false;
 
 static bool attach_entry_point(void) {
+  InitializeCriticalSection(&g_cs);
   TrueEntryPoint = (int(WINAPI *)(VOID))DetourGetEntryPoint(NULL);
   if (DetourTransactionBegin() != NO_ERROR) {
     DBG(debug_error, L"%s", L"failed to begin transaction");
